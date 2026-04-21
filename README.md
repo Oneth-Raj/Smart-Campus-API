@@ -135,123 +135,13 @@ curl -i -X POST http://localhost:8080/api/v1/sensors/TEMP-001/readings/ \
 
 Refer to `TECHNICAL_REPORT.md` and `STEP_BY_STEP_GUIDE.md` for extended system design rationale and technical justifications.
 
-
 ---
 
 # Conceptual Report
 
-This section contains the conceptual report as required by the grading specifications.
+This report contains the answers to the 10 questions specified in the coursework guidelines.
 
-
-# Smart Campus API - Technical Report
-
-**Module:** Client-Server Architectures  
-**Coursework:** Developing a JAX-RS RESTful Service  
-**Project Title:** Smart Campus Sensor & Room Management API  
-**Version:** 1.0  
-**Date:** 2025  
-
----
-
-## Executive Summary
-
-This report documents the design and implementation of a production-grade RESTful API for managing smart campus infrastructure. Built using JAX-RS (Jersey) and an embedded Grizzly HTTP server, the API manages thousands of rooms and sensor deployments across a university campus. The implementation demonstrates industry-standard practices in REST architecture, resource modeling, nested resource design, and comprehensive error handling.
-
-The system achieves 100 marks across all five assessment areas:
-- **Part 1**: Service Architecture & Discovery (10 marks)
-- **Part 2**: Room Management (20 marks)
-- **Part 3**: Sensors & Filtering (20 marks)
-- **Part 4**: Sub-Resources (20 marks)
-- **Part 5**: Error Handling (30 marks)
-
----
-
-## Part 1: Service Architecture & Discovery (10 Marks)
-
-### 1.1 Architecture & Project Configuration (5 Marks)
-
-#### Technology Stack Justification
-
-The Smart Campus API is built on a carefully selected technology stack designed for high performance and maintainability:
-
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| API Standard | JAX-RS (Jersey) | Industry standard for Java REST APIs; reference implementation |
-| HTTP Server | Grizzly | Embedded server; no external app server; lightweight; high performance |
-| JSON Processing | Jackson | Automatic POJO serialization; integrates with Jersey |
-| Dependency Management | Maven | Standard build tool; reproducible builds; dependency resolution |
-| JVM Target | Java 11 | Modern JDK with LTS support; lambda support; module system |
-
-#### Maven Configuration
-
-The `pom.xml` defines four critical dependencies:
-
-```xml
-<dependency>
-    <groupId>org.glassfish.jersey.core</groupId>
-    <artifactId>jersey-server</artifactId>
-    <version>${jersey.version}</version>
-</dependency>
-```
-Jersey provides the JAX-RS API implementation, including annotation processors for `@Path`, `@GET`, `@POST`, etc.
-
-```xml
-<dependency>
-    <groupId>org.glassfish.jersey.inject</groupId>
-    <artifactId>jersey-hk2</artifactId>
-    <version>${jersey.version}</version>
-</dependency>
-```
-Enables dependency injection within resource classes via `@Context UriInfo`, `@Context HttpHeaders`, etc.
-
-```xml
-<dependency>
-    <groupId>org.glassfish.jersey.containers</groupId>
-    <artifactId>jersey-container-grizzly2-http</artifactId>
-    <version>${jersey.version}</version>
-</dependency>
-```
-Provides embedded HTTP server capability, eliminating the need for an external container like Tomcat or JBoss.
-
-```xml
-<dependency>
-    <groupId>org.glassfish.jersey.media</groupId>
-    <artifactId>jersey-media-json-jackson</artifactId>
-    <version>${jersey.version}</version>
-</dependency>
-```
-Integrates Jackson's JSON serialization engine with Jersey, enabling automatic conversion between POJOs and JSON.
-
-#### Application Entry Point
-
-The `SmartCampusApplication` class extends `javax.ws.rs.core.Application`:
-
-```java
-@ApplicationPath("/api/v1")
-public class SmartCampusApplication extends Application {
-    @Override
-    public Set<Class<?>> getClasses() {
-        Set<Class<?>> classes = new HashSet<>();
-        classes.add(JacksonFeature.class);
-        classes.add(DiscoveryResource.class);
-        classes.add(RoomResource.class);
-        classes.add(SensorResource.class);
-        classes.add(RoomNotEmptyExceptionMapper.class);
-        classes.add(LinkedResourceNotFoundExceptionMapper.class);
-        classes.add(SensorUnavailableExceptionMapper.class);
-        classes.add(ResourceNotFoundExceptionMapper.class);
-        classes.add(GlobalExceptionMapper.class);
-        classes.add(ApiLoggingFilter.class);
-        return classes;
-    }
-}
-```
-
-**Key Design Decision:** The `@ApplicationPath("/api/v1")` annotation establishes the API root as `/api/v1`, implementing API versioning at the application level. This allows future versions (e.g., `/api/v2`) to coexist without routing conflicts.
-
-The `getClasses()` method provides JAX-RS with the complete registry of resources, exception mappers, and filters. JAX-RS uses reflection to discover annotated methods and automatically wires them into the request processing pipeline.
-
-#### JAX-RS Resource Lifecycle
+## Question 1
 
 **Question from coursework:** "In your report, explain the default lifecycle of a JAX-RS Resource class. Is a new instance instantiated for every incoming request, or does the runtime treat it as a singleton? Elaborate on how this architectural decision impacts the way you manage and synchronize your in-memory data structures (maps/lists) to prevent data loss or race conditions."
 
@@ -340,54 +230,7 @@ The request-scoped resource design, combined with concurrent data structures, is
 
 ---
 
-### 1.2 Discovery Endpoint (5 Marks)
-
-#### Implementation
-
-The Discovery endpoint is implemented at the API root:
-
-```java
-@Path("/")
-@Produces(MediaType.APPLICATION_JSON)
-public class DiscoveryResource {
-    @GET
-    public Map<String, Object> discover() {
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("name", "Smart Campus Sensor and Room Management API");
-        response.put("version", "v1");
-
-        Map<String, String> contact = new LinkedHashMap<>();
-        contact.put("owner", "Facilities Technology Team");
-        contact.put("email", "smart-campus-admin@university.local");
-        response.put("contact", contact);
-
-        Map<String, String> resources = new LinkedHashMap<>();
-        resources.put("rooms", "/api/v1/rooms");
-        resources.put("sensors", "/api/v1/sensors");
-        response.put("resources", resources);
-
-        return response;
-    }
-}
-```
-
-**HTTP Response (200 OK):**
-```json
-{
-  "name": "Smart Campus Sensor and Room Management API",
-  "version": "v1",
-  "contact": {
-    "owner": "Facilities Technology Team",
-    "email": "smart-campus-admin@university.local"
-  },
-  "resources": {
-    "rooms": "/api/v1/rooms",
-    "sensors": "/api/v1/sensors"
-  }
-}
-```
-
-#### HATEOAS and Hypermedia Design
+## Question 2
 
 **Question from coursework:** "Why is the provision of 'Hypermedia' (links and navigation within responses) considered a hallmark of advanced RESTful design (HATEOAS)? How does this approach benefit client developers compared to static documentation?"
 
@@ -454,53 +297,7 @@ This design enables:
 
 ---
 
-## Part 2: Room Management (20 Marks)
-
-### 2.1 Room Resource Implementation (10 Marks)
-
-#### Data Model
-
-```java
-public class Room {
-    private String id;           // "LIB-301"
-    private String name;         // "Library Quiet Study"
-    private int capacity;        // 120
-    private List<String> sensorIds = new ArrayList<>();
-}
-```
-
-**Design Rationale:**
-- **id**: Primary key for storage and retrieval
-- **name**: Human-readable identifier for UI display
-- **capacity**: Business rule for safety regulations (prevents overcrowding)
-- **sensorIds**: Collection of sensor IDs deployed in this room (enablesinverse relationship)
-
-#### GET /api/v1/rooms - List All Rooms
-
-```java
-@GET
-public List<Room> getAllRooms() {
-    return new ArrayList<>(InMemoryStore.ROOMS.values());
-}
-```
-
-**HTTP Response (200 OK):**
-```json
-[
-  {
-    "id": "LIB-301",
-    "name": "Library Quiet Study",
-    "capacity": 120,
-    "sensorIds": ["CO2-001", "TEMP-001"]
-  },
-  {
-    "id": "LAB-202",
-    "name": "Chemistry Lab",
-    "capacity": 30,
-    "sensorIds": []
-  }
-]
-```
+## Question 3
 
 **Question from coursework:** "When returning a list of rooms, what are the implications of returning only IDs versus returning the full room objects? Consider network bandwidth and client side processing."
 
@@ -519,12 +316,12 @@ public List<Room> getAllRooms() {
 We return full room objects because:
 
 1. **Bandwidth Calculation:**
-   - A 5-field room object â‰ˆ 200-300 bytes in JSON
+   - A 5-field room object ≈ 200-300 bytes in JSON
    - Typical campus: 50 rooms = 15KB
    - Modern networks: negligible cost (mobile networks: ~10ms delay)
 
 2. **Round-trip Elimination:**
-   - Alternative: Return IDs, client fetches each â†’ 50 requests
+   - Alternative: Return IDs, client fetches each → 50 requests
    - Each request: ~100ms overhead = 5 seconds total
    - Full objects: 1 request = ~100ms
    - Time saving: 4.9 seconds
@@ -539,8 +336,8 @@ We return full room objects because:
 
 **Optimization Opportunity (Advanced):**
 For extremely large datasets (10,000+ rooms), consider:
-- Pagination: `GET /rooms?page=1&size=100` â†’ returns 100 rooms per request
-- Sparse fieldsets: `GET /rooms?fields=id,name` â†’ returns only needed fields
+- Pagination: `GET /rooms?page=1&size=100` → returns 100 rooms per request
+- Sparse fieldsets: `GET /rooms?fields=id,name` → returns only needed fields
 - Not implemented here to keep coursework scope manageable
 
 #### POST /api/v1/rooms - Create Room
@@ -635,46 +432,7 @@ GET /api/v1/rooms/LIB-301 HTTP/1.1
 
 ---
 
-### 2.2 Room Deletion & Safety Logic (10 Marks)
-
-#### DELETE with Integrity Constraint
-
-```java
-@DELETE
-@Path("/{roomId}")
-public Response deleteRoom(@PathParam("roomId") String roomId) {
-    Room room = InMemoryStore.ROOMS.get(roomId);
-    if (room == null) {
-        throw new ResourceNotFoundException("Room not found: " + roomId);
-    }
-
-    if (room.getSensorIds() != null && !room.getSensorIds().isEmpty()) {
-        throw new RoomNotEmptyException("Room cannot be deleted while sensors are assigned.");
-    }
-
-    InMemoryStore.ROOMS.remove(roomId);
-    return Response.noContent().build();
-}
-```
-
-**Business Logic Constraint:**
-A room cannot be deleted if it contains active sensors. This prevents:
-- **Data Orphans**: Sensors referencing non-existent rooms
-- **Integrity Violations**: Foreign key constraints maintained in application logic
-- **Operational Issues**: Facilities managers try to delete room with active temperature sensor
-
-**Workflow:**
-```
-Step 1: Try DELETE /rooms/LIB-301
-        Room has sensor CO2-001
-        â†’ 409 Conflict (delete blocked)
-
-Step 2: DELETE /sensors/CO2-001 (delete sensor first)
-        â†’ 204 No Content
-
-Step 3: DELETE /rooms/LIB-301 (now succeeds)
-        â†’ 204 No Content
-```
+## Question 4
 
 **Question from coursework:** "Is the DELETE operation idempotent in your implementation? Provide a detailed explanation."
 
@@ -699,13 +457,13 @@ Second call: 404 Not Found (room no longer exists)
 
 **Semantic vs. HTTP Idempotency:**
 
-1. **Semantic Idempotency** (Intent-based): âœ“ YES
+1. **Semantic Idempotency** (Intent-based): ✓ YES
    - Intent: "Delete this room"
    - First call: Deletes it
    - Second call: Also accomplishes the intent (room is deleted)
    - Result is identical
 
-2. **Strict HTTP Idempotency** (Status code-based): âœ— NO
+2. **Strict HTTP Idempotency** (Status code-based): ✗ NO
    - Different status codes (204 vs 404)
    - Technically not idempotent by strict definition
 
@@ -741,72 +499,15 @@ public Response deleteRoom(@PathParam("roomId") String roomId) {
 | Alternative (204) | Strictly idempotent | Hides errors, less informative |
 
 **Industry Standard**: Most REST APIs follow our approach:
-- AWS S3: DELETE non-existent object â†’ 204
-- GitHub API: DELETE non-existent repo â†’ 404
-- Google Cloud: DELETE non-existent resource â†’ 404
+- AWS S3: DELETE non-existent object → 204
+- GitHub API: DELETE non-existent repo → 404
+- Google Cloud: DELETE non-existent resource → 404
 
 We follow established REST best practices over strict idempotency definitions.
 
 ---
 
-## Part 3: Sensors & Filtering (20 Marks)
-
-### 3.1 Sensor Integrity & Validation (10 Marks)
-
-#### Data Model
-
-```java
-public class Sensor {
-    private String id;              // "CO2-001"
-    private String type;            // "CO2", "Temperature", "Occupancy"
-    private String status;          // "ACTIVE", "MAINTENANCE", "OFFLINE"
-    private double currentValue;    // 410.5
-    private String roomId;          // Foreign key
-}
-```
-
-#### POST /api/v1/sensors - Create with Validation
-
-```java
-@POST
-@Consumes(MediaType.APPLICATION_JSON)
-public Response createSensor(Sensor sensor, @Context UriInfo uriInfo) {
-    if (sensor == null || isBlank(sensor.getId()) || isBlank(sensor.getType()) || isBlank(sensor.getRoomId())) {
-        throw new BadRequestException("Sensor id, type and roomId are required.");
-    }
-
-    // Foreign key validation - CRITICAL
-    Room room = InMemoryStore.ROOMS.get(sensor.getRoomId());
-    if (room == null) {
-        throw new LinkedResourceNotFoundException("Linked room does not exist: " + sensor.getRoomId());
-    }
-
-    Sensor newSensor = new Sensor(
-        sensor.getId(),
-        sensor.getType(),
-        normalizeStatus(sensor.getStatus()),
-        sensor.getCurrentValue(),
-        sensor.getRoomId());
-
-    Sensor existing = InMemoryStore.SENSORS.putIfAbsent(newSensor.getId(), newSensor);
-    if (existing != null) {
-        throw new WebApplicationException(...);  // 409 Conflict
-    }
-
-    room.getSensorIds().add(newSensor.getId());  // Update parent
-
-    URI location = uriInfo.getAbsolutePathBuilder().path(newSensor.getId()).build();
-    return Response.created(location).entity(newSensor).build();
-}
-```
-
-**Critical Validation Step:**
-```java
-Room room = InMemoryStore.ROOMS.get(sensor.getRoomId());
-if (room == null) {
-    throw new LinkedResourceNotFoundException("Linked room does not exist: " + sensor.getRoomId());
-}
-```
+## Question 5
 
 **Question from coursework:** "Clearly explain the technical consequences (415 Unsupported Media Type) of content-type mismatches in JAX-RS."
 
@@ -826,8 +527,8 @@ POST /api/v1/sensors HTTP/1.1
 Content-Type: application/json
 {"id":"CO2-001","type":"CO2",...}
 ```
-âœ“ Jackson deserializes JSON â†’ Sensor POJO
-âœ“ Method executes
+✓ Jackson deserializes JSON → Sensor POJO
+✓ Method executes
 
 **Scenario 2: Wrong Content-Type**
 ```bash
@@ -845,8 +546,8 @@ Content-Type: application/json
 ```
 
 **Technical Consequence:**
-- Content-Type mismatch â†’ JAX-RS rejects before method invocation
-- No deserialization attempted â†’ No exception inside method
+- Content-Type mismatch → JAX-RS rejects before method invocation
+- No deserialization attempted → No exception inside method
 - Prevents malformed data from reaching business logic
 - Client must correct Content-Type header and retry
 
@@ -917,7 +618,7 @@ public Sensor getSensorById(@PathParam("sensorId") String sensorId) {
 
 ---
 
-### 3.2 Filtered Retrieval & Query Parameters (10 Marks)
+## Question 6
 
 **Question from coursework:** "Insightful contrast between QueryParams and PathParams, justifying why query strings are superior for collection filtering."
 
@@ -994,81 +695,7 @@ public List<Sensor> getAllSensors(
 
 ---
 
-## Part 4: Sub-Resources & Nested Navigation (20 Marks)
-
-### 4.1 Sub-Resource Locator Pattern (10 Marks)
-
-#### Pattern Implementation
-
-In `SensorResource`:
-```java
-@Path("/{sensorId}/readings")
-public SensorReadingResource sensorReadings(@PathParam("sensorId") String sensorId) {
-    if (!InMemoryStore.SENSORS.containsKey(sensorId)) {
-        throw new ResourceNotFoundException("Sensor not found: " + sensorId);
-    }
-    return new SensorReadingResource(sensorId);
-}
-```
-
-**How JAX-RS Resolves Requests:**
-
-```
-Request: GET /api/v1/sensors/CO2-001/readings/
-
-Step 1: Match /api/v1/sensors
-        â†’ SensorResource class
-
-Step 2: Match {sensorId}/readings
-        â†’ sensorReadings() method
-        â†’ Returns new SensorReadingResource("CO2-001")
-
-Step 3: Look for @GET method on returned resource
-        â†’ SensorReadingResource.getReadings()
-
-Step 4: Invoke method and return response
-```
-
-#### SensorReadingResource Implementation
-
-```java
-@Produces(MediaType.APPLICATION_JSON)
-public class SensorReadingResource {
-    private final String sensorId;
-
-    public SensorReadingResource(String sensorId) {
-        this.sensorId = sensorId;
-    }
-
-    @GET
-    @Path("/")
-    public List<SensorReading> getReadings() {
-        ensureSensorExists();
-        return InMemoryStore.getOrCreateReadings(sensorId);
-    }
-
-    @POST
-    @Path("/")
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response addReading(SensorReading payload, @Context UriInfo uriInfo) {
-        Sensor sensor = ensureSensorExists();
-        
-        if ("MAINTENANCE".equals(sensor.getStatus().toUpperCase(Locale.ROOT))) {
-            throw new SensorUnavailableException("Sensor is in MAINTENANCE and cannot accept new readings.");
-        }
-
-        // ... create and store reading
-    }
-
-    private Sensor ensureSensorExists() {
-        Sensor sensor = InMemoryStore.SENSORS.get(sensorId);
-        if (sensor == null) {
-            throw new ResourceNotFoundException("Sensor not found: " + sensorId);
-        }
-        return sensor;
-    }
-}
-```
+## Question 7
 
 **Question from coursework:** "Detailed discussion on managing complexity and delegation in large APIs."
 
@@ -1185,83 +812,7 @@ Benefits:
 
 ---
 
-### 4.2 Historical Reading Management (10 Marks)
-
-#### GET /sensors/{sensorId}/readings/ - Fetch History
-
-```java
-@GET
-@Path("/")
-public List<SensorReading> getReadings() {
-    ensureSensorExists();
-    return InMemoryStore.getOrCreateReadings(sensorId);
-}
-```
-
-**Response:**
-```json
-[
-  {
-    "id": "reading-1",
-    "timestamp": 1704067200000,
-    "value": 410.5
-  },
-  {
-    "id": "reading-2",
-    "timestamp": 1704153600000,
-    "value": 412.3
-  }
-]
-```
-
-**Data Structure:**
-```java
-public static Map<String, List<SensorReading>> READINGS = new ConcurrentHashMap<>();
-
-// For sensor CO2-001:
-READINGS.get("CO2-001") = [
-    SensorReading("reading-1", 1704067200000, 410.5),
-    SensorReading("reading-2", 1704153600000, 412.3)
-]
-```
-
-#### POST /sensors/{sensorId}/readings/ - Add Reading with Side Effects
-
-```java
-@POST
-@Path("/")
-@Consumes(MediaType.APPLICATION_JSON)
-public Response addReading(SensorReading payload, @Context UriInfo uriInfo) {
-    Sensor sensor = ensureSensorExists();
-    
-    if ("MAINTENANCE".equals(sensor.getStatus().toUpperCase(Locale.ROOT))) {
-        throw new SensorUnavailableException("Sensor is in MAINTENANCE and cannot accept new readings.");
-    }
-
-    if (payload == null) {
-        throw new BadRequestException("Reading payload is required.");
-    }
-
-    // Generate ID if not provided
-    String readingId = (payload.getId() == null || payload.getId().trim().isEmpty())
-        ? UUID.randomUUID().toString()
-        : payload.getId();
-    
-    // Use current time if timestamp not provided
-    long timestamp = payload.getTimestamp() <= 0 ? System.currentTimeMillis() : payload.getTimestamp();
-
-    SensorReading newReading = new SensorReading(readingId, timestamp, payload.getValue());
-    
-    // Store reading
-    InMemoryStore.getOrCreateReadings(sensorId).add(newReading);
-    
-    // SIDE EFFECT: Update parent sensor's current value
-    sensor.setCurrentValue(newReading.getValue());
-
-    URI location = uriInfo.getAbsolutePathBuilder().path(newReading.getId()).build();
-    return Response.created(location).entity(newReading).build();
-}
-```
+## Question 8
 
 **Question from coursework:** "How did you ensure parent-child consistency?"
 
@@ -1279,10 +830,10 @@ Parent-child consistency (parent Sensor's `currentValue` always reflects the lat
 2. **No Intermediate State:**
    ```
    // What we do (consistent):
-   Add reading â†’ Update parent (both happen or neither)
+   Add reading → Update parent (both happen or neither)
    
    // What we avoid (inconsistent):
-   Add reading â†’ (failure) â†’ Parent not updated
+   Add reading → (failure) → Parent not updated
    ```
 
 3. **Request-Scoped Resource:**
@@ -1315,13 +866,13 @@ T4: Thread B reads Sensor, sees currentValue=410.5
 T5: Thread B adds reading to history
 T6: Thread B sets currentValue=412.0
 T7: Thread C reads Sensor, sees currentValue=412.0 (matches latest reading)
-    â†’ CONSISTENT
+    → CONSISTENT
 
 Scenario 2 (Without side effect - Inconsistent):
 T1: Thread A adds reading value=410.5
 T2: Thread B adds reading value=412.0
 T3: Thread C reads Sensor, sees currentValue=400 (hasn't been updated)
-    â†’ INCONSISTENT (parent doesn't reflect latest child)
+    → INCONSISTENT (parent doesn't reflect latest child)
 ```
 
 **Thread Safety of Side Effect:**
@@ -1331,9 +882,9 @@ sensor.setCurrentValue(newReading.getValue());
 
 This single assignment is atomic at the JVM level. Even with concurrent threads:
 ```
-Thread A: sensor.currentValue = 410.5 â† atomic write
-Thread B: sensor.currentValue = 412.0 â† atomic write
-Thread C: read sensor.currentValue    â† atomic read
+Thread A: sensor.currentValue = 410.5 ← atomic write
+Thread B: sensor.currentValue = 412.0 ← atomic write
+Thread C: read sensor.currentValue    ← atomic read
 
 Result: Thread C always sees the most recent write (either 410.5 or 412.0)
 ```
@@ -1350,210 +901,7 @@ Ensures readings can only be added to ACTIVE or OFFLINE sensors, not MAINTENANCE
 
 ---
 
-## Part 5: Error Handling & Security (30 Marks)
-
-### 5.1 Specific Exception Mappers (20 Marks)
-
-JAX-RS provides an elegant exception-to-HTTP-response mechanism via the `ExceptionMapper` interface:
-
-```java
-public interface ExceptionMapper<E extends Throwable> {
-    Response toResponse(E exception);
-}
-```
-
-#### RoomNotEmptyException â†’ 409 Conflict
-
-```java
-@Provider
-public class RoomNotEmptyExceptionMapper implements ExceptionMapper<RoomNotEmptyException> {
-    @Context
-    private UriInfo uriInfo;
-
-    @Override
-    public Response toResponse(RoomNotEmptyException exception) {
-        ErrorResponse error = new ErrorResponse(
-            Response.Status.CONFLICT.getStatusCode(),
-            "Conflict",
-            exception.getMessage(),
-            uriInfo.getPath());
-
-        return Response.status(Response.Status.CONFLICT)
-            .type(MediaType.APPLICATION_JSON)
-            .entity(error)
-            .build();
-    }
-}
-```
-
-**HTTP 409 Conflict Semantics:**
-The request conflicts with the current state of the resource. The room still contains sensors; therefore, it cannot be deleted.
-
-**ErrorResponse JSON:**
-```json
-{
-  "timestamp": 1704067200000,
-  "status": 409,
-  "error": "Conflict",
-  "message": "Room cannot be deleted while sensors are assigned.",
-  "path": "/api/v1/rooms/LIB-301"
-}
-```
-
-#### LinkedResourceNotFoundException â†’ 422 Unprocessable Entity
-
-```java
-@Provider
-public class LinkedResourceNotFoundExceptionMapper implements ExceptionMapper<LinkedResourceNotFoundException> {
-    @Context
-    private UriInfo uriInfo;
-
-    @Override
-    public Response toResponse(LinkedResourceNotFoundException exception) {
-        ErrorResponse error = new ErrorResponse(
-            422,
-            "Unprocessable Entity",
-            exception.getMessage(),
-            uriInfo.getPath());
-
-        return Response.status(422)
-            .type(MediaType.APPLICATION_JSON)
-            .entity(error)
-            .build();
-    }
-}
-```
-
-**HTTP 422 Unprocessable Entity Semantics:**
-The request is syntactically valid JSON, but semantically invalid because the referenced room doesn't exist.
-
-**Why 422 instead of 404?**
-
-- **404 Not Found**: "The resource /api/v1/sensors itself doesn't exist" (wrong interpretation)
-- **422 Unprocessable Entity**: "The payload references a non-existent room; fix your request" (correct)
-
-Clients understand they must create the room first before the sensor.
-
-#### SensorUnavailableException â†’ 403 Forbidden
-
-```java
-@Provider
-public class SensorUnavailableExceptionMapper implements ExceptionMapper<SensorUnavailableException> {
-    @Context
-    private UriInfo uriInfo;
-
-    @Override
-    public Response toResponse(SensorUnavailableException exception) {
-        ErrorResponse error = new ErrorResponse(
-            Response.Status.FORBIDDEN.getStatusCode(),
-            "Forbidden",
-            exception.getMessage(),
-            uriInfo.getPath());
-
-        return Response.status(Response.Status.FORBIDDEN)
-            .type(MediaType.APPLICATION_JSON)
-            .entity(error)
-            .build();
-    }
-}
-```
-
-**HTTP 403 Forbidden Semantics:**
-The resource exists and the request is valid, but the server refuses to process it due to authorization or state constraints.
-
-In this case: The sensor exists, but it's in MAINTENANCE state, so readings cannot be added.
-
-#### ResourceNotFoundException â†’ 404 Not Found
-
-```java
-@Provider
-public class ResourceNotFoundExceptionMapper implements ExceptionMapper<ResourceNotFoundException> {
-    @Context
-    private UriInfo uriInfo;
-
-    @Override
-    public Response toResponse(ResourceNotFoundException exception) {
-        ErrorResponse error = new ErrorResponse(
-            Response.Status.NOT_FOUND.getStatusCode(),
-            "Not Found",
-            exception.getMessage(),
-            uriInfo.getPath());
-
-        return Response.status(Response.Status.NOT_FOUND)
-            .type(MediaType.APPLICATION_JSON)
-            .entity(error)
-            .build();
-    }
-}
-```
-
-**HTTP 404 Not Found Semantics:**
-The requested resource doesn't exist in the system.
-
-**HTTP Status Code Justification Table:**
-
-| Status | Condition | Use Case |
-|--------|-----------|----------|
-| **404** | Resource doesn't exist | GET /rooms/UNKNOWN |
-| **409** | Request conflicts with state | DELETE room with sensors |
-| **422** | Payload is invalid (references missing foreign key) | Create sensor with invalid roomId |
-| **403** | Resource exists but in wrong state | Add reading to maintenance sensor |
-
----
-
-### 5.2 Global Exception Handler (10 Marks)
-
-```java
-@Provider
-public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
-    private static final Logger LOGGER = Logger.getLogger(GlobalExceptionMapper.class.getName());
-
-    @Context
-    private UriInfo uriInfo;
-
-    @Override
-    public Response toResponse(Throwable exception) {
-        // Delegate specific exceptions to their mappers
-        if (exception instanceof WebApplicationException) {
-            WebApplicationException webEx = (WebApplicationException) exception;
-            Response existing = webEx.getResponse();
-            if (existing != null && existing.hasEntity()) {
-                return existing;  // Let specific mapper handle it
-            }
-            int status = existing != null ? existing.getStatus() : 500;
-            ErrorResponse error = new ErrorResponse(
-                status,
-                Response.Status.fromStatusCode(status).getReasonPhrase(),
-                exception.getMessage(),
-                uriInfo.getPath());
-            return Response.status(status).type(MediaType.APPLICATION_JSON).entity(error).build();
-        }
-
-        // Catch-all for unexpected errors
-        LOGGER.log(Level.SEVERE, "Unhandled exception", exception);
-        ErrorResponse error = new ErrorResponse(
-            Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(),
-            "Internal Server Error",
-            "An unexpected error occurred. Please contact support.",
-            uriInfo == null ? "" : uriInfo.getPath());
-
-        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .type(MediaType.APPLICATION_JSON)
-            .entity(error)
-            .build();
-    }
-}
-```
-
-**Key Design:**
-```java
-// DO NOT expose this:
-"message": "NullPointerException: Cannot read field 'sensorIds' on null object",
-"stackTrace": ["com.smartcampus.resources...", "javax.ws.rs.core..."]
-
-// DO expose this:
-"message": "An unexpected error occurred. Please contact support."
-```
+## Question 9
 
 **Question from coursework:** "Analysis of cybersecurity risks, detailing how stack traces expose internal paths, library versions, and logic flaws."
 
@@ -1566,7 +914,7 @@ Stack trace exposure is a critical security vulnerability:
 1. **Library Versions:**
    ```
    at com.fasterxml.jackson.core.JsonFactory.createParser(JsonFactory.java:531)
-                                       â†“
+                                       ↓
    Attacker: "App uses Jackson 2.10.0 from 2020-01-01"
    Check CVE database for known vulnerabilities in 2.10.0
    ```
@@ -1575,7 +923,7 @@ Stack trace exposure is a critical security vulnerability:
    ```
    at com.smartcampus.store.InMemoryStore.getOrCreateReadings(InMemoryStore.java:42)
    at com.smartcampus.resources.SensorReadingResource.addReading(SensorReadingResource.java:65)
-                                â†“
+                                ↓
    Attacker: "Sensors use in-memory store, not database"
    Attacker: "Can design attacks targeting memory (DOS via huge readings list)"
    ```
@@ -1584,7 +932,7 @@ Stack trace exposure is a critical security vulnerability:
    ```
    Caused by: com.smartcampus.exceptions.ResourceNotFoundException: Sensor not found
    at com.smartcampus.resources.SensorResource.getSensorById(SensorResource.java:52)
-                      â†“
+                      ↓
    Attacker: "Class is named 'SensorResource', package is 'com.smartcampus.resources'"
    Attacker: Can predict other class names: RoomResource, DiscoveryResource
    ```
@@ -1593,7 +941,7 @@ Stack trace exposure is a critical security vulnerability:
    ```
    Exception in thread "pool-1-thread-3" java.lang.NullPointerException
    at com.smartcampus.mappers.ErrorResponse.<init>(ErrorResponse.java:25)
-                                                     â†“
+                                                     ↓
    Attacker: "Constructor at line 25 throws NPE"
    Attacker: "View source code on GitHub to see line 25"
    Attacker: "Find the bug developers haven't fixed yet"
@@ -1647,164 +995,4 @@ at oracle.jdbc.driver.DatabaseError.throwSqlException(DatabaseError.java:123)
 ```
 
 ---
-
-## Part 6: Data Persistence & Concurrency
-
-### InMemoryStore Thread Safety
-
-```java
-public final class InMemoryStore {
-    public static final Map<String, Room> ROOMS = new ConcurrentHashMap<>();
-    public static final Map<String, Sensor> SENSORS = new ConcurrentHashMap<>();
-    public static final Map<String, List<SensorReading>> READINGS = new ConcurrentHashMap<>();
-
-    public static List<SensorReading> getOrCreateReadings(String sensorId) {
-        return READINGS.computeIfAbsent(sensorId, key -> new CopyOnWriteArrayList<>());
-    }
-}
-```
-
-**ConcurrentHashMap vs HashMap:**
-
-| Operation | HashMap | ConcurrentHashMap |
-|-----------|---------|-------------------|
-| `get()` | Not thread-safe | Thread-safe, lock-free |
-| `put()` | Not thread-safe | Thread-safe, fine-grained locks |
-| `putIfAbsent()` | N/A | Atomic (check + insert) |
-| `computeIfAbsent()` | N/A | Atomic (compute + insert) |
-| **Concurrent Reads** | No | Yes (segment-level) |
-| **Performance under contention** | High (single lock) | Higher (many locks) |
-
-**CopyOnWriteArrayList vs ArrayList:**
-
-```java
-// ArrayList - not thread-safe
-List<SensorReading> readings = new ArrayList<>();
-readings.add(new SensorReading(...)); // â† Not safe under concurrent access
-readings.get(0);                      // â† Another thread might be modifying
-
-// CopyOnWriteArrayList - thread-safe
-List<SensorReading> readings = new CopyOnWriteArrayList<>();
-readings.add(...);  // Copies entire list, then inserts (expensive write)
-readings.get(0);    // No lock needed, operates on snapshot (fast read)
-```
-
-**Why CopyOnWriteArrayList for Readings?**
-- Many reads (sensor history queries)
-- Few writes (new readings are rare)
-- Perfect match for this access pattern
-
----
-
-## Part 7: API Endpoint Summary
-
-### Base URL
-```
-http://localhost:8080/api/v1
-```
-
-### Endpoints
-
-| Method | Path | Purpose | Status |
-|--------|------|---------|--------|
-| **GET** | `/` | API discovery | 200 |
-| **GET** | `/rooms` | List all rooms | 200 |
-| **POST** | `/rooms` | Create room | 201, 409 |
-| **GET** | `/rooms/{id}` | Get room details | 200, 404 |
-| **DELETE** | `/rooms/{id}` | Delete room | 204, 404, 409 |
-| **GET** | `/sensors` | List sensors (filterable) | 200 |
-| **POST** | `/sensors` | Create sensor | 201, 409, 422 |
-| **GET** | `/sensors/{id}` | Get sensor details | 200, 404 |
-| **GET** | `/sensors/{id}/readings` | Get sensor history | 200, 404 |
-| **POST** | `/sensors/{id}/readings` | Add reading | 201, 403, 404 |
-
----
-
-## Conclusion
-
-The Smart Campus API demonstrates enterprise-grade REST API design:
-
-âœ“ **Clean Architecture**: Separation of concerns via sub-resource locators
-âœ“ **Concurrency**: Thread-safe data structures for high throughput
-âœ“ **Error Handling**: Semantic HTTP status codes + security-aware responses
-âœ“ **Validation**: Foreign key constraints prevent data orphans
-âœ“ **Extensibility**: Query parameter filtering scales to multiple criteria
-âœ“ **Observability**: Request/response logging for debugging
-
-This implementation is production-ready and follows industry standards used by AWS, Google, and GitHub APIs.
-
----
-
-## Appendix A: Testing Checklist
-
-### Build
-```bash
-mvn clean package
-```
-
-### Run
-```bash
-mvn exec:java
-```
-
-### Discovery
-```bash
-curl http://localhost:8080/api/v1
-```
-
-### Create Room (201)
-```bash
-curl -X POST http://localhost:8080/api/v1/rooms \
-  -H "Content-Type: application/json" \
-  -d '{"id":"LIB-301","name":"Library","capacity":120}'
-```
-
-### Create Sensor (201)
-```bash
-curl -X POST http://localhost:8080/api/v1/sensors \
-  -H "Content-Type: application/json" \
-  -d '{"id":"CO2-001","type":"CO2","status":"ACTIVE","currentValue":410.5,"roomId":"LIB-301"}'
-```
-
-### Filter Sensors (200)
-```bash
-curl "http://localhost:8080/api/v1/sensors?type=CO2"
-```
-
-### Add Reading (201)
-```bash
-curl -X POST http://localhost:8080/api/v1/sensors/CO2-001/readings/ \
-  -H "Content-Type: application/json" \
-  -d '{"value":425.8}'
-```
-
-### Try Delete Room with Sensors (409)
-```bash
-curl -X DELETE http://localhost:8080/api/v1/rooms/LIB-301
-```
-
-### Try Invalid Foreign Key (422)
-```bash
-curl -X POST http://localhost:8080/api/v1/sensors \
-  -H "Content-Type: application/json" \
-  -d '{"id":"TEMP-999","type":"Temperature","roomId":"NO-ROOM"}'
-```
-
-### Try Add Reading to Maintenance (403)
-```bash
-# First, create a sensor in maintenance
-curl -X POST http://localhost:8080/api/v1/sensors \
-  -H "Content-Type: application/json" \
-  -d '{"id":"MAINT-001","type":"Temperature","status":"MAINTENANCE","currentValue":0,"roomId":"LIB-301"}'
-
-# Try to add reading
-curl -X POST http://localhost:8080/api/v1/sensors/MAINT-001/readings/ \
-  -H "Content-Type: application/json" \
-  -d '{"value":430}'
-```
-
----
-
-**End of Report**
-
 
