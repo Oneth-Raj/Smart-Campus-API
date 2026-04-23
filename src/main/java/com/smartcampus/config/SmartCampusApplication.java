@@ -15,7 +15,7 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import org.glassfish.jersey.jackson.JacksonFeature;
 
-@ApplicationPath("/api/v1")
+// Removed ApplicationPath to prevent double-nesting with Main.BASE_URI
 public class SmartCampusApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
